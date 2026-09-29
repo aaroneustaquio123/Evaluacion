@@ -22,7 +22,7 @@ export class InventarioService {
   constructor(private readonly dataSource: DataSource) {}
 
   /**
-   * Normaliza encabados o cadenas quitando tildes, espacios extras y convirtiendo a minúsculas
+   * Normaliza encabezados o cadenas quitando tildes, espacios, guiones y convirtiendo a minúsculas
    */
   private normalizeText(text: string): string {
     if (!text) return '';
@@ -31,7 +31,8 @@ export class InventarioService {
       .trim()
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[\s\-_]/g, '');
   }
 
   /**
@@ -74,7 +75,7 @@ export class InventarioService {
       };
     }
 
-    // 2. Identificar indices de columnas según los encabezados (Fila 0)
+    // 2. Identificar índices de columnas según los encabezados (Fila 0)
     const headerRow = rawMatrix[0];
     const columnIndices = {
       nombre: -1,
@@ -89,17 +90,17 @@ export class InventarioService {
 
     headerRow.forEach((colName: any, idx: number) => {
       const normalized = this.normalizeText(colName);
-      if (['nombreproducto', 'nombre', 'producto'].includes(normalized)) {
+      if (['nombreproducto', 'nombredelproducto', 'nombre', 'producto'].includes(normalized)) {
         columnIndices.nombre = idx;
-      } else if (['sku'].includes(normalized)) {
+      } else if (['sku', 'codigo'].includes(normalized)) {
         columnIndices.sku = idx;
-      } else if (['categoria', 'nombrecategoria', 'id_categoria'].includes(normalized)) {
+      } else if (['categoria', 'nombrecategoria', 'idcategoria'].includes(normalized)) {
         columnIndices.categoria = idx;
-      } else if (['cantidad', 'stock'].includes(normalized)) {
+      } else if (['cantidad', 'stock', 'cant'].includes(normalized)) {
         columnIndices.stock = idx;
       } else if (['color'].includes(normalized)) {
         columnIndices.color = idx;
-      } else if (['talla'].includes(normalized)) {
+      } else if (['talla', 'tamano'].includes(normalized)) {
         columnIndices.talla = idx;
       } else if (['modelo'].includes(normalized)) {
         columnIndices.modelo = idx;
@@ -137,7 +138,7 @@ export class InventarioService {
     const skusEnExcel = new Set<string>();
 
     const dataRows = rawMatrix.slice(1);
-    const totalRegistrosLeidos = dataRows.length;
+    let totalRegistrosLeidos = 0;
 
     dataRows.forEach((row, index) => {
       const rowNum = index + 2; // Fila 1 es el encabezado en Excel
@@ -146,6 +147,8 @@ export class InventarioService {
       if (!row || row.length === 0 || row.every((val) => val === null || val === undefined || val === '')) {
         return;
       }
+
+      totalRegistrosLeidos++;
 
       const nombre = row[columnIndices.nombre]?.toString().trim() || '';
       const sku = row[columnIndices.sku]?.toString().trim() || '';
@@ -171,9 +174,17 @@ export class InventarioService {
         errores.push(`Fila ${rowNum}: La categoría '${categoriaNombre}' no existe en la base de datos.`);
       }
 
-      // Validar stock (número positivo/entero >= 0)
+      // Validar stock (número entero >= 0)
       const stockNum = Number(stockRaw);
-      if (stockRaw === undefined || stockRaw === null || stockRaw === '' || isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
+      if (
+        typeof stockRaw === 'boolean' ||
+        stockRaw === undefined ||
+        stockRaw === null ||
+        stockRaw === '' ||
+        isNaN(stockNum) ||
+        stockNum < 0 ||
+        !Number.isInteger(stockNum)
+      ) {
         errores.push(`Fila ${rowNum}: La 'Cantidad' debe ser un número entero mayor o igual a 0.`);
       }
 
@@ -229,7 +240,7 @@ export class InventarioService {
 
     const mapProductosExistentes = new Map<string, Producto>();
     productosExistentes.forEach((prod) => {
-      mapProductosExistentes.set(prod.sku, prod);
+      mapProductosExistentes.set(prod.sku.toUpperCase(), prod);
     });
 
     // 6. ATOMICIDAD: Transacción con QueryRunner
@@ -248,11 +259,13 @@ export class InventarioService {
         const categoriaObj = mapCategorias.get(catNorm);
         if (!categoriaObj) continue;
 
-        if (mapProductosExistentes.has(fila.sku)) {
+        const skuKey = fila.sku.toUpperCase();
+
+        if (mapProductosExistentes.has(skuKey)) {
           // UPDATE: Si el SKU ya existe, actualizar stock y datos requeridos
-          const prodExistente = mapProductosExistentes.get(fila.sku);
+          const prodExistente = mapProductosExistentes.get(skuKey);
           if (prodExistente) {
-            prodExistente.stock = prodExistente.stock + fila.stock;
+            prodExistente.stock = Number(prodExistente.stock) + fila.stock;
             prodExistente.nombre = fila.nombre;
             prodExistente.id_categoria = categoriaObj.id_categoria;
             prodExistente.color = fila.color;
@@ -280,7 +293,7 @@ export class InventarioService {
           totalInsertados++;
 
           // Agregar a la memoria local por si viene el mismo SKU repetido en el mismo Excel
-          mapProductosExistentes.set(fila.sku, nuevoProducto);
+          mapProductosExistentes.set(skuKey, nuevoProducto);
 
           // Conteo para reporte solo de los INSERTADOS en esta subida
           insertadosPorColor[fila.color] = (insertadosPorColor[fila.color] || 0) + 1;
@@ -312,3 +325,4 @@ export class InventarioService {
     };
   }
 }
+
