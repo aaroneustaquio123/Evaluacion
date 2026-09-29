@@ -1,42 +1,326 @@
-<div class="card">
-  <div class="header">
-    <div class="logo-badge">FOOTLOOSE</div>
-    <h1>Carga de Inventario desde Excel</h1>
-    <p class="subtitle">Prueba Técnica Full-Stack: NestJS + Angular + SQL Server</p>
-  </div>
+<div class="app-container">
+  <!-- Header / Brand Section -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="logo-container">
+        <img 
+          *ngIf="imageLoaded" 
+          src="assets/logofootlose.png" 
+          alt="Footloose Logo" 
+          class="brand-logo"
+          (error)="onImageError()"
+        />
+        <!-- Fallback SVG Logo if image is not present -->
+        <div *ngIf="!imageLoaded" class="brand-svg-fallback">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          <span class="fallback-text">FOOTLOOSE</span>
+        </div>
+      </div>
+      <div class="header-titles">
+        <h1>Módulo de Carga Masiva de Inventario</h1>
+        <p class="subtitle">Sistema de Procesamiento y Validación Excel (.xlsx)</p>
+      </div>
+    </div>
+    <div class="system-badge">
+      <span class="badge-dot"></span>
+      <span class="badge-text">NestJS • SQL Server</span>
+    </div>
+  </header>
 
-  <div class="upload-section">
-    <div class="file-input-wrapper">
-      <input 
-        type="file" 
-        id="fileInput" 
-        accept=".xlsx, .xls" 
-        (change)="onFileSelected($event)" 
-      />
-      <label for="fileInput" class="file-label">
-        <span class="icon">📁</span>
-        <span class="file-name">{{ selectedFile ? selectedFile.name : 'Seleccionar archivo .xlsx' }}</span>
-      </label>
+  <!-- Main Content Card -->
+  <main class="main-card">
+    <!-- Dropzone / File Upload Section -->
+    <section class="upload-section">
+      <div 
+        class="dropzone"
+        [class.dragging]="isDragging"
+        [class.has-file]="selectedFile !== null"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        <input 
+          type="file" 
+          id="fileInput" 
+          accept=".xlsx, .xls" 
+          (change)="onFileSelected($event)" 
+          class="hidden-input"
+        />
+
+        <div *ngIf="!selectedFile" class="dropzone-empty">
+          <div class="upload-icon-wrapper">
+            <svg class="icon-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <div class="dropzone-text">
+            <label for="fileInput" class="btn-browse">
+              <span>Examinar archivo</span>
+            </label>
+            <span class="drag-hint">o arrastra tu archivo Excel aquí</span>
+          </div>
+          <p class="file-specs">Soporta únicamente formato Microsoft Excel (.xlsx, .xls)</p>
+        </div>
+
+        <div *ngIf="selectedFile" class="file-selected-card">
+          <div class="file-info">
+            <div class="file-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </div>
+            <div class="file-details">
+              <span class="file-name">{{ selectedFile.name }}</span>
+              <span class="file-size">{{ formatFileSize(selectedFile.size) }}</span>
+            </div>
+          </div>
+          <button type="button" class="btn-remove-file" (click)="removeFile()" title="Quitar archivo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button 
+          class="btn-upload" 
+          [disabled]="!selectedFile || loading" 
+          (click)="subirArchivo()"
+        >
+          <span *ngIf="!loading" class="btn-content">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            Procesar Carga de Inventario
+          </span>
+          <span *ngIf="loading" class="btn-content">
+            <svg class="spinner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+            </svg>
+            Procesando registros en BD...
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Error Alert Box -->
+    <div class="alert alert-error" *ngIf="errorMessage">
+      <div class="alert-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <div class="alert-content">
+        <h4>Error de Procesamiento</h4>
+        <p>{{ errorMessage }}</p>
+      </div>
     </div>
 
-    <button 
-      class="btn-upload" 
-      [disabled]="!selectedFile || loading" 
-      (click)="subirArchivo()"
-    >
-      <span *ngIf="!loading">🚀 Subir Inventario</span>
-      <span *ngIf="loading">⏳ Procesando...</span>
-    </button>
-  </div>
+    <!-- Results Section -->
+    <section class="results-section" *ngIf="respuestaBackend">
+      <!-- Navigation Tabs -->
+      <div class="tab-header">
+        <div class="tab-buttons">
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab === 'dashboard'" 
+            (click)="activeTab = 'dashboard'"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Dashboard Resumen
+          </button>
+          <button 
+            class="tab-btn" 
+            [class.active]="activeTab === 'json'" 
+            (click)="activeTab = 'json'"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            Respuesta JSON Raw
+          </button>
+        </div>
+        
+        <div class="status-summary-badge" [class.success]="respuestaBackend.erroresEncontrados === 0" [class.danger]="respuestaBackend.erroresEncontrados > 0">
+          <svg *ngIf="respuestaBackend.erroresEncontrados === 0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <svg *ngIf="respuestaBackend.erroresEncontrados > 0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          <span>{{ respuestaBackend.mensaje }}</span>
+        </div>
+      </div>
 
-  <!-- Mensaje de error general -->
-  <div class="alert error" *ngIf="errorMessage">
-    <strong>⚠️ Error:</strong> {{ errorMessage }}
-  </div>
+      <!-- Tab 1: Dashboard Resumen -->
+      <div *ngIf="activeTab === 'dashboard'" class="dashboard-view">
+        <!-- KPI Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-read">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Registros Leídos</span>
+              <span class="kpi-value">{{ respuestaBackend.totalRegistrosLeidos }}</span>
+            </div>
+          </div>
 
-  <!-- Resultado JSON -->
-  <div class="result-section" *ngIf="respuestaBackend">
-    <h2>📊 Reporte de Procesamiento (JSON)</h2>
-    <pre class="json-viewer">{{ respuestaBackend | json }}</pre>
-  </div>
+          <div class="kpi-card kpi-inserted">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Nuevos Insertados</span>
+              <span class="kpi-value">{{ respuestaBackend.totalRegistrosInsertados }}</span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-updated">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Stock Actualizado</span>
+              <span class="kpi-value">{{ respuestaBackend.totalRegistrosActualizados }}</span>
+            </div>
+          </div>
+
+          <div class="kpi-card kpi-errors" [class.has-errors]="respuestaBackend.erroresEncontrados > 0">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Errores Detectados</span>
+              <span class="kpi-value">{{ respuestaBackend.erroresEncontrados }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Breakdown Section (Colors and Models) -->
+        <div class="breakdown-grid" *ngIf="respuestaBackend.detalle">
+          <!-- Colors Widget -->
+          <div class="widget-card">
+            <div class="widget-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+              </svg>
+              <h3>Insertados por Color</h3>
+            </div>
+            <div class="widget-body">
+              <div *ngIf="getObjectKeys(respuestaBackend.detalle.insertadosPorColor).length === 0" class="empty-widget">
+                Sin inserciones por color en esta ejecución
+              </div>
+              <div class="tags-container" *ngIf="getObjectKeys(respuestaBackend.detalle.insertadosPorColor).length > 0">
+                <div *ngFor="let key of getObjectKeys(respuestaBackend.detalle.insertadosPorColor)" class="color-tag">
+                  <span class="tag-name">{{ key }}</span>
+                  <span class="tag-count">{{ respuestaBackend.detalle.insertadosPorColor[key] }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Models Widget -->
+          <div class="widget-card">
+            <div class="widget-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+              <h3>Insertados por Modelo</h3>
+            </div>
+            <div class="widget-body">
+              <div *ngIf="getObjectKeys(respuestaBackend.detalle.insertadosPorModelo).length === 0" class="empty-widget">
+                Sin inserciones por modelo en esta ejecución
+              </div>
+              <div class="models-list" *ngIf="getObjectKeys(respuestaBackend.detalle.insertadosPorModelo).length > 0">
+                <div *ngFor="let key of getObjectKeys(respuestaBackend.detalle.insertadosPorModelo)" class="model-row">
+                  <span class="model-name">{{ key }}</span>
+                  <span class="model-badge">{{ respuestaBackend.detalle.insertadosPorModelo[key] }} ud(s)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Errors List Section -->
+        <div class="errors-section" *ngIf="respuestaBackend.errores && respuestaBackend.errores.length > 0">
+          <div class="errors-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <h3>Detalle de Inconsistencias en el Archivo</h3>
+          </div>
+          <div class="errors-list">
+            <div *ngFor="let error of respuestaBackend.errores" class="error-item">
+              <div class="error-bullet">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </div>
+              <span class="error-desc">{{ error }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Raw JSON Response -->
+      <div *ngIf="activeTab === 'json'" class="json-view">
+        <div class="json-header-toolbar">
+          <span class="json-title">Estructura del Payload (JSON)</span>
+          <button class="btn-copy-json" (click)="copyJson()" [class.copied]="copiedJson">
+            <svg *ngIf="!copiedJson" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <svg *ngIf="copiedJson" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>{{ copiedJson ? '¡Copiado al portapapeles!' : 'Copiar JSON' }}</span>
+          </button>
+        </div>
+        <pre class="json-code-block">{{ respuestaBackend | json }}</pre>
+      </div>
+    </section>
+  </main>
 </div>
+
