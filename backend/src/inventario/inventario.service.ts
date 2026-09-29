@@ -303,10 +303,11 @@ export class InventarioService {
 
       // Si todo fue exitoso, confirmar la transacción (Commit)
       await queryRunner.commitTransaction();
-    } catch (dbError) {
+    } catch (dbError: any) {
       // En caso de error inesperado de base de datos, revertir todo (Rollback)
       await queryRunner.rollbackTransaction();
-      throw new BadRequestException(`Error al procesar la transacción en la BD: ${dbError.message}`);
+      const errorMessage = dbError?.message || dbError?.driverError?.message || String(dbError);
+      throw new BadRequestException(`Error al procesar la transacción en la BD: ${errorMessage}`);
     } finally {
       // Liberar el QueryRunner
       await queryRunner.release();
