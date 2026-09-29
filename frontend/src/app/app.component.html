@@ -1,0 +1,42 @@
+<div class="card">
+  <div class="header">
+    <div class="logo-badge">FOOTLOOSE</div>
+    <h1>Carga de Inventario desde Excel</h1>
+    <p class="subtitle">Prueba Técnica Full-Stack: NestJS + Angular + SQL Server</p>
+  </div>
+
+  <div class="upload-section">
+    <div class="file-input-wrapper">
+      <input 
+        type="file" 
+        id="fileInput" 
+        accept=".xlsx, .xls" 
+        (change)="onFileSelected($event)" 
+      />
+      <label for="fileInput" class="file-label">
+        <span class="icon">📁</span>
+        <span class="file-name">{{ selectedFile ? selectedFile.name : 'Seleccionar archivo .xlsx' }}</span>
+      </label>
+    </div>
+
+    <button 
+      class="btn-upload" 
+      [disabled]="!selectedFile || loading" 
+      (click)="subirArchivo()"
+    >
+      <span *ngIf="!loading">🚀 Subir Inventario</span>
+      <span *ngIf="loading">⏳ Procesando...</span>
+    </button>
+  </div>
+
+  <!-- Mensaje de error general -->
+  <div class="alert error" *ngIf="errorMessage">
+    <strong>⚠️ Error:</strong> {{ errorMessage }}
+  </div>
+
+  <!-- Resultado JSON -->
+  <div class="result-section" *ngIf="respuestaBackend">
+    <h2>📊 Reporte de Procesamiento (JSON)</h2>
+    <pre class="json-viewer">{{ respuestaBackend | json }}</pre>
+  </div>
+</div>

@@ -1,0 +1,23 @@
+# compiled output
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# node_modules
+/node_modules
+npm-debug.log
+yarn-error.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.cproject
+.settings/
+*.sublime-workspace
+.vscode/
+
+# Operating system
+.DS_Store
+Thumbs.db
