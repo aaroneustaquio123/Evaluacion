@@ -19,7 +19,7 @@ export class AppComponent {
   copiedJson: boolean = false;
   imageLoaded: boolean = true;
 
-  private apiUrl = 'http://localhost:3000/api/inventario/upload';
+  private apiUrl = (window as any).API_URL || 'http://localhost:3000/api/inventario/upload';
 
   constructor(private http: HttpClient) {}
 
